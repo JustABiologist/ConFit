@@ -139,15 +139,30 @@ def main():
 
     model = get_peft_model(basemodel, peft_config)
 
-    # create optimizer and scheduler
+    # if the Accelerator actually has an fsdp_plugin, override its wrap policy
+    fsdp_plugin = getattr(accelerator, "fsdp_plugin", None)
+    if fsdp_plugin is not None:
+        fsdp_plugin.auto_wrap_policy = fsdp_auto_wrap_policy(model)
+
+
+    # 1) Wrap the model alone under FSDP
+    model = accelerator.prepare(model)
+
+    # 2) Now build optimizer & scheduler on the FSDP-wrapped model
     optimizer = torch.optim.Adam(model.parameters(), lr=float(config['ini_lr']))
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=2*int(config['max_epochs']), eta_min=float(config['min_lr']))
-    if os.environ.get("ACCELERATE_USE_FSDP", None) is not None:
-        accelerator.state.fsdp_plugin.auto_wrap_policy = fsdp_auto_wrap_policy(model)
-    model, optimizer, scheduler = accelerator.prepare(model, optimizer, scheduler)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
+        optimizer,
+        T_0=2 * int(config['max_epochs']),
+        eta_min=float(config['min_lr']),
+    )
+
+    # 3) Prepare optimizer & scheduler (and other objects) for distributed execution
+    optimizer, scheduler = accelerator.prepare(optimizer, scheduler)
     model_reg = accelerator.prepare(model_reg)
 
-    accelerator.print(f'===================dataset:{dataset}, preparing data=============')
+    accelerator.print(
+        f'===================dataset:{dataset}, preparing data============='
+    )
 
     # sample data
     if accelerator.is_main_process:

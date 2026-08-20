@@ -158,3 +158,38 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# Secrets / local env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+secrets/
+
+# Model checkpoints, predictions, and run outputs
+checkpoint/
+predicted/
+logs/
+wandb/
+runs/
+outputs/
+results/
+*.ckpt
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# Large / generated experiment artifacts
+*.png
+/*.fasta
+data/
+good_stuff/
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
